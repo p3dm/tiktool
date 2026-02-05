@@ -93,6 +93,7 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             "Link_driver":cell(1),
             "Status": cell(4),
             "comment language": cell(10),
+            "Avatar": cell(7),
             "Bio": cell(8),
             "Name": cell(9),
             "Key Word": cell(11),
@@ -177,7 +178,6 @@ def random_sleep(min_seconds, max_seconds):
 
 def generate_comment(comment_language, post_caption,api_key):
 
-    
     prompt = (
         f"Tạo cho tôi bình luận \n"
         f"Lưu ý: comment bằng tiếng {comment_language} chỉ đưa ra kết quả duy nhất là 1 bình luận từ 5 đến 15 từ, Chỉ trả về kết quả, không giải thích. \n"
@@ -212,6 +212,45 @@ def generate_comment(comment_language, post_caption,api_key):
     else:
         print("Lỗi API key hoặc request thất bại:", res.status_code)
 
+def generate_keyword(comment_language, keyWord, api_key):
+    """Generate 5 related keywords and return as list"""
+    prompt = (
+        f"Tạo cho tôi 5 từ khóa tìm kiếm trên tiktok liên quan đến '{keyWord}' bằng tiếng {comment_language}.\n"
+        f"Lưu ý: \n"
+        f"- Trả về 5 từ khóa, mỗi từ khóa trên một dòng\n"
+        f"- Mỗi từ khóa ngắn gọn từ 1 đến 3 từ\n"
+        f"- Chỉ trả về danh sách từ khóa, không đánh số, không giải thích\n"
+    )
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    res = requests.post(URL, headers=headers, data=json.dumps(payload))
+
+    if res.status_code == 200:
+        data = res.json()
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            # Parse kết quả thành list, loại bỏ dòng rỗng và khoảng trắng thừa
+            keywords = [line.strip() for line in text.strip().split('\n') if line.strip()]
+            return keywords
+        except Exception as e:
+            print(f"Response không có text: {data}")
+            return []
+    else:
+        print(f"Lỗi API key hoặc request thất bại: {res.status_code}")
+        return []
 
 def searchByKeyWord(d, keyWord):
     try:
@@ -270,14 +309,24 @@ def view(d):
         random_sleep(2, 4)
     except Exception as e:
         print(f"Error in view: {e}")
-def update_avatar(d,d_id,link):
+def update_avatar(data):
+    drive_link = str(data["Avatar"])
+    phone_ids = get_phone_ids("14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8", "seeding")
+    items = dowload_img_by_link(drive_link)
+    assigned_links = distribute_links(phone_ids, items)
+    device_id = str(data["Phone ID"])
+    link_x = None
+    for item in assigned_links:
+        if item["Phone ID"] == device_id:
+            link_x = item["Link"]
+            break
+    d = u2.connect(device_id)
     try:
-
         subprocess.run([
-            "adb", "-s", d_id,
+            "adb", "-s", device_id,
             "shell", "am", "start",
             "-a", "android.intent.action.VIEW",
-            "-d", link
+            "-d", link_x
         ])
         random_sleep(5, 7)
         d.xpath('//*[@content-desc="Tải xuống"]|//*[@content-desc="Download"]|//*[@text="Download"]').click_exists()
@@ -305,12 +354,18 @@ def update_avatar(d,d_id,link):
         print("Avatar updated successfully")
         time.sleep(4)
         d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
     except Exception as e:
         print(f"Error in update_bio: {e}")
 
-def update_bio(d, bio_text):
+def update_bio(data):
+    device_id = str(data["Phone ID"])
+    bio = str(data["Bio"])
+    d = u2.connect(device_id)
+
     try:
         print("Update bio")
+    
         d.app_start("com.ss.android.ugc.trill")
         random_sleep(3, 6)
         d.xpath(Xpath["profile_button"]).click()
@@ -321,22 +376,28 @@ def update_bio(d, bio_text):
         random_sleep(2, 4)
         if d.xpath('//*[@text="Add a bio"]').exists :
             d.xpath('//*[@text="Add a bio"]').click()
-            d.send_keys(bio_text)
+            d.send_keys(bio)
         else: 
             d.xpath(Xpath["bio_field"]).long_click()
             random_sleep(1, 2)
             d.xpath('//*[@text="Select all"]').click()
             d.clear_text()
             random_sleep(3,6)
-            d.send_keys(bio_text)
+            d.send_keys(bio)
         random_sleep(1, 2)
         d.xpath(Xpath["save_button"]).click()
-        random_sleep(2, 4)
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
+
         print("Bio updated successfully")
     except Exception as e:
         print(f"Error in update_bio: {e}")
 
-def update_name(d, name_text):
+def update_name(data):
+    device_id = str(data["Phone ID"])
+    name = str(data["Name"])
+    d = u2.connect(device_id)
     try:
         print("Update name")
         d.app_start("com.ss.android.ugc.trill")
@@ -352,48 +413,49 @@ def update_name(d, name_text):
             random_sleep(1, 2)
             d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ekb"]').click()
             random_sleep(1,2)
-            d.send_keys(name_text)
+            d.send_keys(name)
             d.xpath(Xpath["save_button"]).click()
             random_sleep(3,6)
             d.xpath('//*[@text="Confirm"]').click()
         else: 
             d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ekb"]').click()
             random_sleep(1,2)
-            d.send_keys(name_text)
+            d.send_keys(name)
             d.xpath(Xpath["save_button"]).click()
-        random_sleep(2, 4)
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
         print("Name updated successfully")
     except Exception as e:
         print(f"Error in update_name: {e}")
 
 
-def flow1(d, total_time, keyWord, comment_language,api_key):
+def flow1(d, keyWord, comment_language, api_key):
     """Flow 1: Search by keyword and interact"""
     actions = ["comment"]
-    start_time = time.time()
     try:
         d.app_start("com.ss.android.ugc.trill")
         random_sleep(3, 6)
         
-        # Vòng lặp ngoài - tìm từ khóa mới nếu còn thời gian
-        while True:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= total_time:
-                print(f"⏱️ Đã hết thời gian ({total_time}s). Dừng chương trình.")
-                break
+        # Generate danh sách từ khóa liên quan
+        print(f"🔍 Đang generate từ khóa liên quan đến '{keyWord}'...")
+        keyword_list = generate_keyword(comment_language, keyWord, api_key)
+        
+        if not keyword_list:
+            print("⚠️ Không generate được từ khóa, sử dụng từ khóa gốc")
+            keyword_list = [keyWord]
+        
+        print(f"📝 Danh sách từ khóa: {keyword_list}")
+        
+        # Search với từng từ khóa trong list
+        for current_keyword in keyword_list:
             d.set_fastinput_ime(True)
-            searchByKeyWord(d, keyWord)
+            print(f"🔎 Search với từ khóa: {current_keyword}")
+            searchByKeyWord(d, current_keyword)
             random_sleep(10, 12)
             
-            # Vòng lặp trong - thực hiện 8-12 lần các action
+            # Tương tác với 8-12 video
             for _ in range(random.randint(8, 12)):
-                elapsed_time = time.time() - start_time
-                
-                # Kiểm tra thời gian
-                if elapsed_time >= total_time:
-                    print(f"⏱️ Đã hết thời gian ({total_time}s). Dừng chương trình.")
-                    return
-                
                 random_sleep(10, 12)
                 
                 chosen_action = random.choice(actions)
@@ -406,33 +468,23 @@ def flow1(d, total_time, keyWord, comment_language,api_key):
                         print("chon view")
                     if(chosen_action == "comment"):
                         d.set_fastinput_ime(True)
-                        comment(d, comment_language,api_key)
+                        comment(d, comment_language, api_key)
                         time.sleep(2)
                         d.press("back")
-
                         print("chon comment")
-                except Exception as e:
+                except Exception as e:                    
                     print(f"⚠️ Lỗi khi thực hiện action: {e}")
                 
                 scroll(d)
-                random_sleep(2, 3)
-
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= total_time:
-                print(f"⏱️ Đã hết thời gian ({total_time}s). Dừng chương trình.")
-                break
-            else:
-                print(f"⏳ Thời gian còn lại: {total_time - elapsed_time:.1f}s. Tìm từ khóa tiếp...")
-                random_sleep(2, 3)
-                
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
     except Exception as e:
         print(f"❌ Lỗi trong firstflow: {e}")
 
-def flow2(d, total_time, comment_language,api_key):
+def flow2(d, comment_language, api_key):
     """Flow 2: Browse For You feed and interact"""
-    
     actions = ["comment"]
-    start_time = time.time()
     
     try:
         d.app_start("com.ss.android.ugc.trill")
@@ -441,20 +493,10 @@ def flow2(d, total_time, comment_language,api_key):
         
         # Vòng lặp liên tục - không cần tìm kiếm
         video_count = 0
-        while True:
-            elapsed_time = time.time() - start_time
-            
-            # Kiểm tra thời gian
-            if elapsed_time >= total_time:
-                print(f"⏱️ Đã hết thời gian ({total_time}s). Đã xem {video_count} video. Dừng chương trình.")
-                break
-            
-            # Dừng 10-15s ở video hiện tại (xem video)
+        while True:  
             random_sleep(10, 15)
-            
             chosen_action = random.choice(actions)
             print(f"chosen: {chosen_action}")
-
             if(chosen_action == "like"):
                 like(d)
             if(chosen_action == "view"):
@@ -464,65 +506,43 @@ def flow2(d, total_time, comment_language,api_key):
                 comment(d, comment_language,api_key)
                 time.sleep(2)
                 d.press("back")
-
-            
             scroll(d)
             video_count += 1
             random_sleep(1, 2)
             
             if video_count % 10 == 0:
-                remaining_time = total_time - elapsed_time
-                print(f"📊 Đã xem {video_count} video. Thời gian còn lại: {remaining_time:.1f}s")      
+                time.sleep(4)
+                break
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")        
     except Exception as e:
         print(f"❌ Lỗi trong secondflow: {e}")
 
 def main_flow(data):
-    rows = get_bold_phone_rows(
-        spreadsheet_id="14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8",
-        sheet_name="seeding"
-    )
-    drive_link = rows[0]["Link_driver"]
-    phone_ids = get_phone_ids("14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8", "seeding")
-    items = dowload_img_by_link(drive_link)
-    assigned_links = distribute_links(phone_ids, items)
-    print(assigned_links)
-
     device_id = str(data["Phone ID"])
-    total_time = int(data["Total Time"])
     keyWord = str(data["Key Word"])
-    bio = str(data["Bio"])
-    name = str(data["Name"])
     comment_language = str(data["comment language"])
     api_key = str(data["API_KEY"])
     time.sleep(10)
-    link_x = None
 
-    for item in assigned_links:
-        if item["Phone ID"] == device_id:
-            link_x = item["Link"]
-            break
     device = u2.connect(device_id)
 
     print(f"Đang kết nối đến máy : {device_id}")
-    print(f"new Name: {name}")
-    # end_time = time.time() + total_time
+    
     try:
-        flow = random.choice(["flow1", "flow2"])
-        # print(f"🎯 Chọn flow: {flow}")
-        # update_avatar(device,device_id,link_x)
-        if flow == "flow1":
-            flow1(device, total_time, keyWord, comment_language,api_key)
-        else:
-            flow2(device, total_time, comment_language,api_key)
-        
-        # update_bio(device, bio)
-        # update_name(device, name)
+        while True:
+            # Chạy flow1
+            print("🔄 Bắt đầu Flow 1...")
+            flow1(device, keyWord, comment_language, api_key)
             
-        update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
+            # Chạy flow2
+            print("🔄 Bắt đầu Flow 2...")
+            flow2(device, comment_language, api_key)
+        
+        # update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
         
     except Exception as e:
         error_msg = f"❌ Lỗi: {str(e)}"
         print(error_msg)
         update_running_result(sheet_id, sheet_name, device_id, error_msg)
-
-
