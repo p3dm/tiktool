@@ -1,0 +1,557 @@
+import random
+import uiautomator2 as u2
+import time
+import requests
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import subprocess
+import json
+keyWord = []
+total_time = 0
+# API keys cho Gemini - Thêm keys của bạn vào đây
+
+Xpath = {
+    "search": "//*[@text='Search']",
+    "comment_button": '//*[contains(@content-desc, "Read or add comments")]',
+    "like_button": '//*[@content-desc="Like"]',
+    "send_comment": '//*[@content-desc="Post comment"]',
+    "search_button": "//*[@resource-id='com.ss.android.ugc.trill:id/nil']",
+    "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]",
+    "post_1_3": "//*[@resource-id='com.ss.android.ugc.trill:id/s94']",
+    "post_1_1":"//*[@resource-id='com.ss.android.ugc.trill:id/sj7']",
+    "post_1_2":"//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
+    "share_button": '//*[contains(@content-desc, "Share video")]',
+    "reup_button": '//*[contains(@content-desc,"Add or remove this video from Favorites")]',
+    "profile_button": '//*[@content-desc="Profile"]',
+    "edit_button" : "//*[@resource-id='com.ss.android.ugc.trill:id/d76']",
+    "update_bio":'//*[@text="Add a bio"]',
+    "bio_field": "//*[@resource-id='com.ss.android.ugc.trill:id/ekb']",
+    "save_button": "//*[@resource-id='com.ss.android.ugc.trill:id/jv8']",
+    "close_button": '//*[@content-desc="Close"]'
+}
+
+sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
+sheet_name = "seeding"
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+
+creds = service_account.Credentials.from_service_account_file(
+    "aber-129b1-d3ca26ba130a.json",
+    scopes=SCOPES
+)
+
+service = build('sheets', 'v4', credentials=creds)
+
+def update_running_result(spreadsheet_id, sheet_name, phone_id, status):
+    # Lấy toàn bộ cột A (Phone ID)
+    res = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range=f"{sheet_name}!A:A"
+    ).execute()
+
+    rows = res.get("values", [])
+
+    for idx, row in enumerate(rows, start=1):
+        if row and row[0] == phone_id:
+            service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=f"{sheet_name}!G{idx}",  # cột Running results
+                valueInputOption="RAW",
+                body={"values": [[status]]}
+            ).execute()
+            return True
+
+    return False
+
+def get_bold_phone_rows(spreadsheet_id, sheet_name):
+    res = service.spreadsheets().get(
+        spreadsheetId=spreadsheet_id,
+        ranges=[sheet_name],
+        includeGridData=True
+    ).execute()
+
+    rows = res['sheets'][0]['data'][0]['rowData']
+    result = []
+
+    for row_index, row in enumerate(rows[1:], start=2):  # bỏ header
+        cells = row.get('values', [])
+        if len(cells) < 1:
+            continue
+
+        phone_cell = cells[0]
+        phone_id = phone_cell.get('formattedValue')
+
+        text_fmt = phone_cell.get('userEnteredFormat', {}) \
+                              .get('textFormat', {})
+
+        # ❗ chỉ lấy Phone ID được Ctrl+B
+        if not text_fmt.get('bold') or not phone_id:
+            continue
+
+
+        def cell(i):
+            return cells[i].get('formattedValue') if i < len(cells) else None
+
+        result.append({
+            "Phone ID": phone_id,
+            "Link_driver":cell(1),
+            "Status": cell(4),
+            "comment language": cell(10),
+            "Avatar": cell(7),
+            "Bio": cell(8),
+            "Name": cell(9),
+            "Key Word": cell(11),
+            "Total Time": cell(12), # Cột chứa API keys (cách nhau bởi | hoặc \n)
+            "API_KEY" : cell(13)
+        })
+    return result
+
+# Fetch dữ liệu từ Google Sheet
+print("📊 Đang fetch dữ liệu từ Google Sheet...")
+sheet_data = get_bold_phone_rows(sheet_id, sheet_name)
+
+
+def dowload_img_by_link(drive_link):
+    SERVICE_ACCOUNT_FILE = 'aber-129b1-d3ca26ba130a.json'
+    SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+    prefix = "https://drive.google.com/file/d/"
+    # Bỏ query string nếu có
+    url = drive_link.split("?")[0]
+
+    if "/drive/u/" in url and "/folders/" in url:
+        # case: /drive/u/1/folders/ID
+        drive_id = url.split("/folders/")[1].rstrip("/")
+
+    elif "/drive/folders/" in url:
+        # case: /drive/folders/ID
+        drive_id = url.split("/drive/folders/")[1].rstrip("/")
+
+    elif "/file/d/" in url:
+        # case: /file/d/ID/view
+        drive_id = url.split("/file/d/")[1].split("/")[0]
+
+    else:
+        raise ValueError("Link Google Drive không hỗ trợ")
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE,
+        scopes=SCOPES
+    )
+    service = build('drive', 'v3', credentials=creds)
+
+    query = f"'{drive_id}' in parents and mimeType contains 'image/' and trashed = false"
+
+    results = service.files().list(
+        q=query,
+        pageSize=1000,
+        fields="files(id, name)"
+    ).execute()
+
+    items = results.get('files', [])
+
+    if not items:
+        print('Không tìm thấy file ảnh nào.')
+    else:
+        download_links = []
+        for file in items:
+            file_id = file['id']
+            download_url = f"https://drive.google.com/file/d/{file_id}"
+            download_links.append(download_url)
+        return download_links
+
+def get_phone_ids(spreadsheet_id, sheet_name):
+    rows = get_bold_phone_rows(spreadsheet_id, sheet_name)
+    return [row["Phone ID"] for row in rows if row.get("Phone ID")]
+
+
+def distribute_links(phone_ids, download_links):
+    result = []
+
+    phone_count = len(phone_ids)
+    link_count = len(download_links)
+
+    for i in range(phone_count):
+        link = download_links[i] if i < link_count else None
+
+        result.append({
+            "Phone ID": phone_ids[i],
+            "Link": link
+        })
+    return result
+def random_sleep(min_seconds, max_seconds):
+    return time.sleep(random.uniform(min_seconds, max_seconds))
+
+def generate_comment(comment_language, post_caption,api_key):
+
+    prompt = (
+        f"Tạo cho tôi bình luận \n"
+        f"Lưu ý: comment bằng tiếng {comment_language} chỉ đưa ra kết quả duy nhất là 1 bình luận từ 5 đến 15 từ, Chỉ trả về kết quả, không giải thích. \n"
+        f"không dùng icon\n"
+        f"Dựa trên video ngắn trên Tiktok có caption: '{post_caption}',\n"
+        f"hãy đưa ra một bình luận vui vẻ, tích cực, với góc nhìn khi tôi là người dùng tiktok lướt thấy video có captop này \n"
+    )
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    res = requests.post(URL, headers=headers, data=json.dumps(payload))
+
+    if res.status_code == 200:
+        data = res.json()
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            return text
+        except Exception:
+            print("Response không có text:", data)
+    else:
+        print("Lỗi API key hoặc request thất bại:", res.status_code)
+
+def generate_keyword(comment_language, keyWord, api_key):
+    """Generate 5 related keywords and return as list"""
+    prompt = (
+        f"Tạo cho tôi 5 từ khóa tìm kiếm trên tiktok liên quan đến '{keyWord}' bằng tiếng {comment_language}.\n"
+        f"Lưu ý: \n"
+        f"- Trả về 5 từ khóa, mỗi từ khóa trên một dòng\n"
+        f"- Mỗi từ khóa ngắn gọn từ 1 đến 3 từ\n"
+        f"- Chỉ trả về danh sách từ khóa, không đánh số, không giải thích\n"
+    )
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    res = requests.post(URL, headers=headers, data=json.dumps(payload))
+
+    if res.status_code == 200:
+        data = res.json()
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            # Parse kết quả thành list, loại bỏ dòng rỗng và khoảng trắng thừa
+            keywords = [line.strip() for line in text.strip().split('\n') if line.strip()]
+            return keywords
+        except Exception as e:
+            print(f"Response không có text: {data}")
+            return []
+    else:
+        print(f"Lỗi API key hoặc request thất bại: {res.status_code}")
+        return []
+
+def searchByKeyWord(d, keyWord):
+    try:
+        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"]).click()
+        random_sleep(5,10)
+        print(f"Keyword: {keyWord}")
+        d.send_keys(keyWord)
+        random_sleep(5,10)
+        d.xpath(Xpath["search"]).click()
+        random_sleep(5,10)
+        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"]).click()
+        random_sleep(5,10)
+        if d.xpath(Xpath["close_button"]).exists:
+            d.xpath(Xpath["close_button"]).click()
+            random_sleep(2,3)
+        print("Clicked post 1")
+    except Exception as e:
+        print(f"Error in searchByKeyWord: {e}")
+
+def like(d):
+    try:
+        print("Liking post")
+        d.xpath(Xpath["like_button"]).click()
+        random_sleep(10, 12)
+    except Exception as e:
+        print(f"Error in like: {e}")
+
+def comment(d, comment_language,api_key):
+
+    try:
+        print("💬 Commenting on post")
+        post_caption = d.xpath("//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
+        d.xpath(Xpath["comment_button"]).click()
+        random_sleep(2, 3)
+        print(f"caption:{post_caption}")
+        # Generate comment mới từ API (chỉ truyền 2 tham số)
+        commentText = generate_comment(comment_language, post_caption,api_key)
+        d.xpath('//*[@text="Add comment..."]').click()
+        print("{commentText}")
+        d.send_keys(commentText)
+        random_sleep(2, 3)
+        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]' + " | " + Xpath["send_comment"]).click()
+        random_sleep(10, 12)
+        print("✅ Comment posted successfully")
+        
+    except Exception as e:
+        print(f"❌ Error in comment: {e}")
+
+def scroll(d):
+    try:
+        print("Scrolling to next post")
+        d.swipe(500, 1500, 500, 500, duration=0.2)
+    except Exception as e:
+        print(f"Error in scroll: {e}")
+
+def view(d):
+    try:
+        print("Viewing post only")
+        random_sleep(2, 4)
+    except Exception as e:
+        print(f"Error in view: {e}")
+def update_avatar(data):
+    drive_link = str(data["Avatar"])
+    phone_ids = get_phone_ids("14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8", "seeding")
+    items = dowload_img_by_link(drive_link)
+    assigned_links = distribute_links(phone_ids, items)
+    device_id = str(data["Phone ID"])
+    link_x = None
+    for item in assigned_links:
+        if item["Phone ID"] == device_id:
+            link_x = item["Link"]
+            break
+    d = u2.connect(device_id)
+    try:
+        subprocess.run([
+            "adb", "-s", device_id,
+            "shell", "am", "start",
+            "-a", "android.intent.action.VIEW",
+            "-d", link_x
+        ])
+        random_sleep(5, 7)
+        d.xpath('//*[@content-desc="Tải xuống"]|//*[@content-desc="Download"]|//*[@text="Download"]').click_exists()
+        random_sleep(10,12)
+        print("Update avatar")
+        d.app_start("com.ss.android.ugc.trill")
+        random_sleep(3, 6)
+        d.xpath(Xpath["profile_button"]).click()
+        random_sleep(2, 4)
+        d.xpath('//*[@text="Edit"]').click()
+        time.sleep(2)
+        d.xpath('//*[@text="Change photo"]').click()
+        time.sleep(3)
+        d.xpath('//*[@text="Upload photo"]').click()
+        random_sleep(3,5)
+        d.xpath('//android.widget.GridView/android.widget.FrameLayout[1]').click()
+        random_sleep(4,5)
+        d.xpath('//*[@text="Next"]').click()
+        random_sleep(1,2)
+        d.xpath('//*[@text="Next (1)"]').click()
+        random_sleep(4,5)
+        d.xpath("//*[contains(@text, 'post')]").click()
+        time.sleep(2)
+        d.xpath("//*[contains(@text, 'post')]").click_exists(5)
+        print("Avatar updated successfully")
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
+    except Exception as e:
+        print(f"Error in update_bio: {e}")
+
+def update_bio(data):
+    device_id = str(data["Phone ID"])
+    bio = str(data["Bio"])
+    d = u2.connect(device_id)
+
+    try:
+        print("Update bio")
+    
+        d.app_start("com.ss.android.ugc.trill")
+        random_sleep(3, 6)
+        d.xpath(Xpath["profile_button"]).click()
+        random_sleep(2, 4)
+        d.xpath(Xpath["edit_button"]).click()
+        random_sleep(2, 4)
+        d.xpath(Xpath["update_bio"]).click()
+        random_sleep(2, 4)
+        if d.xpath('//*[@text="Add a bio"]').exists :
+            d.xpath('//*[@text="Add a bio"]').click()
+            d.send_keys(bio)
+        else: 
+            d.xpath(Xpath["bio_field"]).long_click()
+            random_sleep(1, 2)
+            d.xpath('//*[@text="Select all"]').click()
+            d.clear_text()
+            random_sleep(3,6)
+            d.send_keys(bio)
+        random_sleep(1, 2)
+        d.xpath(Xpath["save_button"]).click()
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
+
+        print("Bio updated successfully")
+    except Exception as e:
+        print(f"Error in update_bio: {e}")
+
+def update_name(data):
+    device_id = str(data["Phone ID"])
+    name = str(data["Name"])
+    d = u2.connect(device_id)
+    try:
+        print("Update name")
+        d.app_start("com.ss.android.ugc.trill")
+        random_sleep(3, 6)
+        d.xpath(Xpath["profile_button"]).click()
+        random_sleep(2, 4)
+        d.xpath(Xpath["edit_button"]).click()
+        random_sleep(2, 4)
+        d.xpath('//*[@text="Name"]').click()
+        random_sleep(2, 4)
+        if d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/hdf"]').exists :
+            d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/hdf"]').click()
+            random_sleep(1, 2)
+            d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ekb"]').click()
+            random_sleep(1,2)
+            d.send_keys(name)
+            d.xpath(Xpath["save_button"]).click()
+            random_sleep(3,6)
+            d.xpath('//*[@text="Confirm"]').click()
+        else: 
+            d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ekb"]').click()
+            random_sleep(1,2)
+            d.send_keys(name)
+            d.xpath(Xpath["save_button"]).click()
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
+        print("Name updated successfully")
+    except Exception as e:
+        print(f"Error in update_name: {e}")
+
+
+def flow1(d, keyWord, comment_language, api_key):
+    """Flow 1: Search by keyword and interact"""
+    actions = ["comment", "like", "view"]
+    try:
+        random_sleep(3, 6)
+        
+        # Generate danh sách từ khóa liên quan
+        print(f"🔍 Đang generate từ khóa liên quan đến '{keyWord}'...")
+        keyword_list = generate_keyword(comment_language, keyWord, api_key)
+        print(keyword_list)
+        
+        if not keyword_list:
+            print("⚠️ Không generate được từ khóa, sử dụng từ khóa gốc")
+            keyword_list = [keyWord]
+        
+        print(f"📝 Danh sách từ khóa: {keyword_list}")
+        
+        # Search với từng từ khóa trong list
+        for current_keyword in keyword_list:
+            d.app_start("com.ss.android.ugc.trill")
+            random_sleep(10, 12)
+            print(f"🔎 Search với từ khóa: {current_keyword}")
+            searchByKeyWord(d, current_keyword)
+            random_sleep(10, 12)
+            
+            # Tương tác với 6-10 video
+            for _ in range(random.randint(6, 10)):
+                random_sleep(10, 12)
+                
+                chosen_action = random.choice(actions)
+                try:
+                    if(chosen_action == "like"):
+                        like(d)
+                        print("chon like")
+                    if(chosen_action == "view"):
+                        view(d)
+                        print("chon view")
+                    if(chosen_action == "comment"):
+                        comment(d, comment_language, api_key)
+                        time.sleep(2)
+                        d.press("back")
+                        print("chon comment")
+                except Exception as e:                    
+                    print(f"⚠️ Lỗi khi thực hiện action: {e}")
+                random_sleep(10, 12)
+                scroll(d)
+            time.sleep(4)
+            d.press('home')
+            d.app_stop("com.ss.android.ugc.trill")
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")
+    except Exception as e:
+        print(f"❌ Lỗi trong firstflow: {e}")
+
+def flow2(d, comment_language, api_key):
+    """Flow 2: Browse For You feed and interact"""
+    actions = ["comment", "like", "view"]
+    
+    try:
+        d.app_start("com.ss.android.ugc.trill")
+        print("📱 Mở app TikTok và lướt For You Feed...")
+        random_sleep(3, 6)
+        
+        # Vòng lặp liên tục - không cần tìm kiếm
+        video_count = 0
+        while True:  
+            random_sleep(10, 15)
+            chosen_action = random.choice(actions)
+            print(f"chosen: {chosen_action}")
+            if(chosen_action == "like"):
+                like(d)
+            if(chosen_action == "view"):
+                view(d)
+            if(chosen_action == "comment"):
+                comment(d, comment_language,api_key)
+                time.sleep(2)
+                d.press("back")
+            scroll(d)
+            video_count += 1
+            random_sleep(10, 12)
+            
+            if video_count % 10 == 0:
+                time.sleep(4)
+                break
+        time.sleep(4)
+        d.press('home')
+        d.app_stop("com.ss.android.ugc.trill")        
+    except Exception as e:
+        print(f"❌ Lỗi trong secondflow: {e}")
+
+def main_flow(data):
+    device_id = str(data["Phone ID"])
+    keyWord = str(data["Key Word"])
+    comment_language = str(data["comment language"])
+    api_key = str(data["API_KEY"])
+    time.sleep(10)
+
+    device = u2.connect(device_id)
+
+    print(f"Đang kết nối đến máy : {device_id}")
+    
+    try:
+        while True:
+            # Chạy flow1
+            print("🔄 Bắt đầu Flow 1...")
+            flow1(device, keyWord, comment_language, api_key)
+            
+            # # Chạy flow2
+            # print("🔄 Bắt đầu Flow 2...")
+            # flow2(device, comment_language, api_key)
+        
+        # update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
+        
+    except Exception as e:
+        error_msg = f"❌ Lỗi: {str(e)}"
+        print(error_msg)
+        update_running_result(sheet_id, sheet_name, device_id, error_msg)
