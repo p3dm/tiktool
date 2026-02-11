@@ -12,7 +12,7 @@ from Tool import *
 
 sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 sheet_name = "seeding"
-ADB_PATH = r"C:\Users\hungdv\.genfarmer\image-search\static\adb\windows\adb.exe"
+ADB_PATH = r"../adb/windows/adb.exe"
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 creds = Credentials.from_service_account_file(

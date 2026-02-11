@@ -150,7 +150,7 @@ def upload_video(d,music,caption):
     d.press("home")
 
 def open_link(link, device_id):
-    command = ["adb", "-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", link, "com.ss.android.ugc.trill"]
+    command = ["adb", "-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", link]
     subprocess.run(command)
 
 def getCommentByAI(api_key, post_data,seeding_language,niche,topic,customer_portrait,goal_of_interaction):

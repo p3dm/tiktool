@@ -12,7 +12,7 @@ from Tool import *
 SHEET_ID = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 SHEET_NAME = "seeding_2"
 SERVICE_ACCOUNT_FILE = "aber-129b1-d3ca26ba130a.json"
-
+ADB_PATH = r"../adb/windows/adb.exe"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # ================== INIT SERVICE ==================
@@ -83,13 +83,20 @@ def running_buff_view(data):
     view_target = data["view each phone"]
     comments = data["Comment/ @/ icon (enter)"]
     link = data["link"]
+    print("Đang vào link")
+    subprocess.run([
+        ADB_PATH, "-s", device_id,
+        "shell", "am", "start",
+        "-a", "android.intent.action.VIEW",
+        "-d", link + " com.ss.android.ugc.trill"
+    ])
     if(comments!=""):
         commentInPost = comments
     else:
         language = data["seeding language"]
         topic = data["niche, topic"]
         customerPortrait = data["customer portrait"]
-        goalOfInteractio = data["goalOfInteractio"]
+        goalOfInteractio = data["goalOfInteraction"]
         interactionOrientation = data["interaction orientation"]
         api_key = data["api_key"]
         post_data = device.xpath("//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
@@ -97,7 +104,6 @@ def running_buff_view(data):
                                    interactionOrientation)
 
     print(f"[DEVICE {device_id}] START")
-    open_link(link,device_id)
     time.sleep(10)
     buff_view(int(view_target.strip()), 3, device, commentInPost)
 # ================== RESULT ==================

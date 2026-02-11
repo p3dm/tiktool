@@ -6,8 +6,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import subprocess
 import json
-keyWord = []
-total_time = 0
 # API keys cho Gemini - Thêm keys của bạn vào đây
 
 Xpath = {
@@ -545,9 +543,9 @@ def main_flow(data):
             print("🔄 Bắt đầu Flow 1...")
             flow1(device, keyWord, comment_language, api_key)
             
-            # # Chạy flow2
-            # print("🔄 Bắt đầu Flow 2...")
-            # flow2(device, comment_language, api_key)
+            # Chạy flow2
+            print("🔄 Bắt đầu Flow 2...")
+            flow2(device, comment_language, api_key)
         
         # update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
         
