@@ -12,7 +12,7 @@ from Tool import *
 
 sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 sheet_name = "seeding"
-
+ADB_PATH = r"C:\Users\hungdv\.genfarmer\image-search\static\adb\windows\adb.exe"
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 creds = Credentials.from_service_account_file(
@@ -105,15 +105,15 @@ def running_post_video(data):
     music = data["Music keyword"]
     results = data["Running results"]
     subprocess.run([
-        "adb", "-s", device_id,
+        ADB_PATH, "-s", device_id,
         "shell", "am", "start",
         "-a", "android.intent.action.VIEW",
-        "-d", link+ " com.android.chrome"
+        "-d", link + " com.android.chrome"
     ])
     time.sleep(15)
     device = u2.connect(device_id)
-    device.xpath("Tải xuống").click()
-    time.sleep(60)
+    device.xpath("Tải xuống").click_exists(timeout=2)
+    time.sleep(30)
     update_running_result(
         sheet_id,
         sheet_name,

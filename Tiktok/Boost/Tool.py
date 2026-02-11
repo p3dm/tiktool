@@ -15,7 +15,8 @@ import json
 Like_xpath = '//*[@content-desc="Like" and @selected="false"]'
 commentButton_xpath='//*[contains(@content-desc, "Read or add comments")]'
 shareButton_xpath='//*[contains(@content-desc, "Share video")]'
-reupButton_xpath='//*[contains(@content-desc,"Add or remove this video from Favorites")]'
+reupButton_xpath = '//*[contains(@content-desc,"Add or remove this video from Favorites") and @selected="false"]'
+
 
 
 
@@ -24,7 +25,7 @@ reupButton_xpath='//*[contains(@content-desc,"Add or remove this video from Favo
 
 
 def do_like(d):
-    d.xpath(Like_xpath).click()
+    d.xpath(Like_xpath).click_exists(2)
 
 def do_comment(d,listComment):
     d.xpath(commentButton_xpath).click()
@@ -46,7 +47,7 @@ def do_share(d):
     time.sleep(2)
     d.xpath('//*[@content-desc="Copy link"]').click()
 def do_reup(d):
-    d.xpath(reupButton_xpath).click()
+    d.xpath(reupButton_xpath).click_exists(2)
 def buff_view(view_buff,sleep_time,d,listComment):
     special_actions = [
         "like",
@@ -85,38 +86,30 @@ def upload_video(d,music,caption):
     d.app_auto_grant_permissions('com.ss.android.ugc.trill')
     print("[LOG] Auto grant permissions")
 
-    d.app_start('com.zhiliaoapp.musically')
+    d.app_start('com.ss.android.ugc.trill')
     print("[LOG] Start TikTok app")
 
     time.sleep(random.uniform(7, 8))
 
-    d.xpath('//*[@content-desc="Create"]').click()
+    d.xpath('//*[@content-desc="Create"]|//*[@resource-id="com.ss.android.ugc.trill:id/mva"]').click()
     print("[LOG] Click Create (+)")
 
     time.sleep(2)
 
-    d.xpath('//*[@resource-id="com.zhiliaoapp.musically:id/kwk"]').click()
+    d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ch5"]').click()
     print("[LOG] Click Upload")
 
-    time.sleep(2)
-    w, h = d.window_size()
-    time.sleep(2)
-    d.swipe(w * 0.5, h * 0.88, w * 0.5, h * 0.3, 0.2)
-
-    d.xpath('//android.widget.GridView/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.Button').click()
+    d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/n56"]|//android.widget.GridView/android.widget.FrameLayout[1]').click()
     print("[LOG] Click first image in GridView")
     time.sleep(3)
 
-    d.xpath('//*[contains(@text, "Next")]').click()
+    d.xpath('//*[contains(@text, "Next")]|//*[@resource-id="com.ss.android.ugc.trill:id/o67"]').click()
     print("[LOG] Click Next (step 1)")
-
-    time.sleep(60)
+    time.sleep(2)
     if(music != None):
-        d.xpath('//*[@resource-id="com.zhiliaoapp.musically:id/ycm"]').click()
+        d.xpath('//*[@resource-id="com.zhiliaoapp.musically:id/ycm"]|//*[@resource-id="com.ss.android.ugc.trill:id/z0v"]|//*[@content-desc="Music"]').click()
         print("[LOG] Click Next / Continue (step 2)")
-
         time.sleep(3)
-
         d.xpath('//*[@resource-id="com.zhiliaoapp.musically:id/h1x"]').click()
         print("[LOG] Focus search / input field")
 
@@ -144,15 +137,17 @@ def upload_video(d,music,caption):
         print("[LOG] Click position 50% width - 65% height")
 
     time.sleep(3)
-    d.xpath('//*[@text="Next"]').click()
+    d.xpath('//*[@text="Next"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6e"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6h"]').click()
     time.sleep(3)
-    d.xpath('//*[@text="Writing a long description can help get 3x more views on average."]|//*[@text="Add description..."]').click()
+    d.xpath('//*[@text="Add description..."]|//*[@text="Writing a long description can help get 3x more views on average."]').click(10)
     print("[LOG] Description hint detected")
 
     time.sleep(2)
     d.send_keys(caption+" ")
     print("[LOG] Type caption text")
-    d.xpath('//*[@text="Post"]').click()
+    d.xpath('//*[@text="Post"]|//*[@resource-id="com.ss.android.ugc.trill:id/r8j"]').click()
+    time.sleep(5)
+    d.press("home")
 
 def open_link(link, device_id):
     command = ["adb", "-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", link, "com.ss.android.ugc.trill"]
