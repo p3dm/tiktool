@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from Trust.Trust import *
+from Trust import update_avatar, get_bold_phone_rows
 
 
 rows = get_bold_phone_rows(

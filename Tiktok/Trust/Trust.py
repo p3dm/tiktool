@@ -11,19 +11,23 @@ total_time = 0
 # API keys cho Gemini - Thêm keys của bạn vào đây
 
 Xpath = {
-    "search": "//*[@content-desc='Search']",
+    "search": "//*[@text='Search']",
     "comment_button": '//*[contains(@content-desc, "Read or add comments")]',
     "like_button": '//*[@content-desc="Like"]',
-    "send_comment": '//*[@content-desc="@2131888199]',
+    "send_comment": '//*[@content-desc="Post comment"]',
     "search_button": "//*[@resource-id='com.ss.android.ugc.trill:id/nil']",
-    "post_1": "//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
+    "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]",
+    "post_1_3": "//*[@resource-id='com.ss.android.ugc.trill:id/s94']",
+    "post_1_1":"//*[@resource-id='com.ss.android.ugc.trill:id/sj7']",
+    "post_1_2":"//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
     "share_button": '//*[contains(@content-desc, "Share video")]',
     "reup_button": '//*[contains(@content-desc,"Add or remove this video from Favorites")]',
     "profile_button": '//*[@content-desc="Profile"]',
     "edit_button" : "//*[@resource-id='com.ss.android.ugc.trill:id/d76']",
     "update_bio":'//*[@text="Add a bio"]',
     "bio_field": "//*[@resource-id='com.ss.android.ugc.trill:id/ekb']",
-    "save_button": "//*[@resource-id='com.ss.android.ugc.trill:id/jv8']"
+    "save_button": "//*[@resource-id='com.ss.android.ugc.trill:id/jv8']",
+    "close_button": '//*[@content-desc="Close"]'
 }
 
 sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
@@ -254,15 +258,18 @@ def generate_keyword(comment_language, keyWord, api_key):
 
 def searchByKeyWord(d, keyWord):
     try:
-        print("Searching")
-        d.xpath(Xpath["search"]+'|//*[@resource-id="com.ss.android.ugc.trill:id/n0_"]/android.widget.ImageView[2]').click()
-        random_sleep(3,6)
+        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"]).click()
+        random_sleep(5,10)
         print(f"Keyword: {keyWord}")
         d.send_keys(keyWord)
-        random_sleep(3,6)
-        d.xpath('//*[@text="Search"]').click()
-        time.sleep(2)
-        d.xpath(Xpath["post_1"]).click()
+        random_sleep(5,10)
+        d.xpath(Xpath["search"]).click()
+        random_sleep(5,10)
+        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"]).click()
+        random_sleep(5,10)
+        if d.xpath(Xpath["close_button"]).exists:
+            d.xpath(Xpath["close_button"]).click()
+            random_sleep(2,3)
         print("Clicked post 1")
     except Exception as e:
         print(f"Error in searchByKeyWord: {e}")
@@ -271,7 +278,7 @@ def like(d):
     try:
         print("Liking post")
         d.xpath(Xpath["like_button"]).click()
-        time.sleep(1)
+        random_sleep(10, 12)
     except Exception as e:
         print(f"Error in like: {e}")
 
@@ -289,8 +296,8 @@ def comment(d, comment_language,api_key):
         print("{commentText}")
         d.send_keys(commentText)
         random_sleep(2, 3)
-        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]').click()
-        random_sleep(1, 2)
+        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]' + " | " + Xpath["send_comment"]).click()
+        random_sleep(10, 12)
         print("✅ Comment posted successfully")
         
     except Exception as e:
@@ -432,14 +439,14 @@ def update_name(data):
 
 def flow1(d, keyWord, comment_language, api_key):
     """Flow 1: Search by keyword and interact"""
-    actions = ["comment"]
+    actions = ["comment", "like", "view"]
     try:
-        d.app_start("com.ss.android.ugc.trill")
         random_sleep(3, 6)
         
         # Generate danh sách từ khóa liên quan
         print(f"🔍 Đang generate từ khóa liên quan đến '{keyWord}'...")
         keyword_list = generate_keyword(comment_language, keyWord, api_key)
+        print(keyword_list)
         
         if not keyword_list:
             print("⚠️ Không generate được từ khóa, sử dụng từ khóa gốc")
@@ -449,13 +456,14 @@ def flow1(d, keyWord, comment_language, api_key):
         
         # Search với từng từ khóa trong list
         for current_keyword in keyword_list:
-            d.set_fastinput_ime(True)
+            d.app_start("com.ss.android.ugc.trill")
+            random_sleep(10, 12)
             print(f"🔎 Search với từ khóa: {current_keyword}")
             searchByKeyWord(d, current_keyword)
             random_sleep(10, 12)
             
-            # Tương tác với 8-12 video
-            for _ in range(random.randint(8, 12)):
+            # Tương tác với 6-10 video
+            for _ in range(random.randint(6, 10)):
                 random_sleep(10, 12)
                 
                 chosen_action = random.choice(actions)
@@ -467,15 +475,17 @@ def flow1(d, keyWord, comment_language, api_key):
                         view(d)
                         print("chon view")
                     if(chosen_action == "comment"):
-                        d.set_fastinput_ime(True)
                         comment(d, comment_language, api_key)
                         time.sleep(2)
                         d.press("back")
                         print("chon comment")
                 except Exception as e:                    
                     print(f"⚠️ Lỗi khi thực hiện action: {e}")
-                
+                random_sleep(10, 12)
                 scroll(d)
+            time.sleep(4)
+            d.press('home')
+            d.app_stop("com.ss.android.ugc.trill")
         time.sleep(4)
         d.press('home')
         d.app_stop("com.ss.android.ugc.trill")
@@ -484,7 +494,7 @@ def flow1(d, keyWord, comment_language, api_key):
 
 def flow2(d, comment_language, api_key):
     """Flow 2: Browse For You feed and interact"""
-    actions = ["comment"]
+    actions = ["comment", "like", "view"]
     
     try:
         d.app_start("com.ss.android.ugc.trill")
@@ -502,13 +512,12 @@ def flow2(d, comment_language, api_key):
             if(chosen_action == "view"):
                 view(d)
             if(chosen_action == "comment"):
-                d.set_fastinput_ime(True)
                 comment(d, comment_language,api_key)
                 time.sleep(2)
                 d.press("back")
             scroll(d)
             video_count += 1
-            random_sleep(1, 2)
+            random_sleep(10, 12)
             
             if video_count % 10 == 0:
                 time.sleep(4)
@@ -536,9 +545,9 @@ def main_flow(data):
             print("🔄 Bắt đầu Flow 1...")
             flow1(device, keyWord, comment_language, api_key)
             
-            # Chạy flow2
-            print("🔄 Bắt đầu Flow 2...")
-            flow2(device, comment_language, api_key)
+            # # Chạy flow2
+            # print("🔄 Bắt đầu Flow 2...")
+            # flow2(device, comment_language, api_key)
         
         # update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
         

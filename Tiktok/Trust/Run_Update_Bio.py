@@ -1,6 +1,5 @@
 from multiprocessing import Process
-from Trust import *
-from Trust.Trust import get_bold_phone_rows, update_bio
+from Trust import update_bio, get_bold_phone_rows
 
 rows = get_bold_phone_rows(
     spreadsheet_id="14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8",
