@@ -59,7 +59,14 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             "Tool session": cell(3),
             "Status": cell(4),
             "Music keyword": cell(5),
-            "Running results": cell(6)
+            "Running results": cell(6),
+            "Avatar": cell(7),
+            "Bio": cell(8),
+            "Name": cell(9),
+            "comment_language": cell(10),
+            "Key Word": cell(11),
+            "TotalTime": cell(12),
+            "API_KEY" : cell(13)
         })
 
     return result
@@ -104,15 +111,22 @@ def running_post_video(data):
     status = data["Status"]
     music = data["Music keyword"]
     results = data["Running results"]
+    device = u2.connect(device_id)
+    device.press("home")
+    device.app_stop("com.zhiliaoapp.musically")
+    device.app_clear("com.genfarmer.uiautomator")
+    time.sleep(2)
     subprocess.run([
         ADB_PATH, "-s", device_id,
         "shell", "am", "start",
         "-a", "android.intent.action.VIEW",
-        "-d", link + " com.android.chrome"
+        "-d", link + "com.android.chrome"
     ])
-    time.sleep(15)
-    device = u2.connect(device_id)
-    device.xpath("Tải xuống").click_exists(timeout=2)
+    time.sleep(60)
+    device.xpath('//*[@content-desc="Download"]|//*[@content-desc="Tải xuống"]|//*[@text="Showing viewer."]/android.view.View[2]/android.view.View[1]/android.view.View[2]/android.view.View[1]/android.widget.Button[1]').click_exists(timeout=10)
+    print(f"{device_id}: Đang tải video về máy...")
+    time.sleep(10)
+    device.xpath('//*[@text="Download again"]|//*[@text="Download"]|//*[@text="Download anyway"]').click_exists(timeout=7)
     time.sleep(30)
     update_running_result(
         sheet_id,

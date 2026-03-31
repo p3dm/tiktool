@@ -1,4 +1,6 @@
 import random
+from adbutils import device
+from adbutils import device
 import uiautomator2 as u2
 import time
 import requests
@@ -6,30 +8,40 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import subprocess
 import json
-# API keys cho Gemini - Thêm keys của bạn vào đây
 
+#//*[@content-desc="Dismiss update dialog"]
 Xpath = {
+    
     "search": "//*[@text='Search']",
     "comment_button": '//*[contains(@content-desc, "Read or add comments")]',
     "like_button": '//*[@content-desc="Like"]',
     "send_comment": '//*[@content-desc="Post comment"]',
+    "send_comment_1": '//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]',
     "search_button": "//*[@resource-id='com.ss.android.ugc.trill:id/nil']",
-    "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]",
+    "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]", 
+    "search_button_3": '//*[@resource-id="com.zhiliaoapp.musically:id/j2p" and @content-desc="Search"]',   
     "post_1_3": "//*[@resource-id='com.ss.android.ugc.trill:id/s94']",
     "post_1_1":"//*[@resource-id='com.ss.android.ugc.trill:id/sj7']",
     "post_1_2":"//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
+    "post_1_4":'//*[@resource-id="com.zhiliaoapp.musically:id/soy"]',
     "share_button": '//*[contains(@content-desc, "Share video")]',
     "reup_button": '//*[contains(@content-desc,"Add or remove this video from Favorites")]',
     "profile_button": '//*[@content-desc="Profile"]',
-    "edit_button" : "//*[@resource-id='com.ss.android.ugc.trill:id/d76']",
-    "update_bio":'//*[@text="Add a bio"]',
-    "bio_field": "//*[@resource-id='com.ss.android.ugc.trill:id/ekb']",
-    "save_button": "//*[@resource-id='com.ss.android.ugc.trill:id/jv8']",
-    "close_button": '//*[@content-desc="Close"]'
+    "edit_button" : '//*[@text="Edit"]',
+    "update_bio":'//*[@text="Bio"]',
+    "bio_field": "//*[@resource-id='com.ss.android.ugc.trill:id/ekb']|//*[@resource-id='com.zhiliaoapp.musically:id/grs']",
+    "save_button": '//*[@text="Save"]',
+    "close_button": '//*[@content-desc="Close"]',
+    "x_button": "//*[@resource-id='com.ss.android.ugc.trill:id/jvf']",
+    "share_button": '//*[@resource-id="com.ss.android.ugc.trill:id/nwg"]',
+    "share_button_1":'//*[@resource-id="com.zhiliaoapp.musically:id/u2_"]',
+    "repost_button": '//*[@content-desc="Repost"]/android.widget.FrameLayout[1]',
+    "save_button": '//*[contains(@content-desc,"Add or remove this video from Favorites") and @selected="false"]'
 }
 
 sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 sheet_name = "seeding"
+pkgs = ["com.ss.android.ugc.trill", "com.zhiliaoapp.musically"]
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -82,7 +94,6 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
         text_fmt = phone_cell.get('userEnteredFormat', {}) \
                               .get('textFormat', {})
 
-        # ❗ chỉ lấy Phone ID được Ctrl+B
         if not text_fmt.get('bold') or not phone_id:
             continue
 
@@ -91,21 +102,20 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             return cells[i].get('formattedValue') if i < len(cells) else None
 
         result.append({
-            "Phone ID": phone_id,
+            "Phone_ID": phone_id,
             "Link_driver":cell(1),
             "Status": cell(4),
-            "comment language": cell(10),
+            "comment_language": cell(10),
             "Avatar": cell(7),
             "Bio": cell(8),
             "Name": cell(9),
-            "Key Word": cell(11),
-            "Total Time": cell(12), # Cột chứa API keys (cách nhau bởi | hoặc \n)
+            "Key_Word": cell(11),
+            "TotalTime": cell(12), # Cột chứa API keys (cách nhau bởi | hoặc \n)
             "API_KEY" : cell(13)
         })
     return result
 
 # Fetch dữ liệu từ Google Sheet
-print("📊 Đang fetch dữ liệu từ Google Sheet...")
 sheet_data = get_bold_phone_rows(sheet_id, sheet_name)
 
 
@@ -220,7 +230,7 @@ def generate_keyword(comment_language, keyWord, api_key):
         f"Tạo cho tôi 5 từ khóa tìm kiếm trên tiktok liên quan đến '{keyWord}' bằng tiếng {comment_language}.\n"
         f"Lưu ý: \n"
         f"- Trả về 5 từ khóa, mỗi từ khóa trên một dòng\n"
-        f"- Mỗi từ khóa ngắn gọn từ 1 đến 3 từ\n"
+        f"- Mỗi từ khóa ngắn gọn từ 1 đến 3 từ khác biệt so với từ ban đầu (unique)\n"
         f"- Chỉ trả về danh sách từ khóa, không đánh số, không giải thích\n"
     )
     URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
@@ -256,19 +266,17 @@ def generate_keyword(comment_language, keyWord, api_key):
 
 def searchByKeyWord(d, keyWord):
     try:
-        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"]).click()
-        random_sleep(5,10)
-        print(f"Keyword: {keyWord}")
+        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"] + " | " + Xpath["search_button_3"]).click()
+        random_sleep(6,15)
         d.send_keys(keyWord)
-        random_sleep(5,10)
+        random_sleep(6,15)
         d.xpath(Xpath["search"]).click()
-        random_sleep(5,10)
-        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"]).click()
-        random_sleep(5,10)
+        random_sleep(10,15)
+        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"] + " | " + Xpath["post_1_4"]).click()
+        random_sleep(6,15)
         if d.xpath(Xpath["close_button"]).exists:
             d.xpath(Xpath["close_button"]).click()
             random_sleep(2,3)
-        print("Clicked post 1")
     except Exception as e:
         print(f"Error in searchByKeyWord: {e}")
 
@@ -284,22 +292,41 @@ def comment(d, comment_language,api_key):
 
     try:
         print("💬 Commenting on post")
-        post_caption = d.xpath("//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
+        post_caption = d.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']").get_text()
         d.xpath(Xpath["comment_button"]).click()
-        random_sleep(2, 3)
+        random_sleep(3,6)
         print(f"caption:{post_caption}")
         # Generate comment mới từ API (chỉ truyền 2 tham số)
         commentText = generate_comment(comment_language, post_caption,api_key)
         d.xpath('//*[@text="Add comment..."]').click()
-        print("{commentText}")
+        print(f"Generated comment: {commentText}")
         d.send_keys(commentText)
-        random_sleep(2, 3)
-        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]' + " | " + Xpath["send_comment"]).click()
+        random_sleep(3,6)
+        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]' + " | " + Xpath["send_comment"] + "|" + Xpath["send_comment_1"]).click()
         random_sleep(10, 12)
         print("✅ Comment posted successfully")
         
     except Exception as e:
         print(f"❌ Error in comment: {e}")
+
+def save_video(d):
+    try:
+        print("Saving video")
+        d.xpath(Xpath["save_button"]).click()
+    except Exception as e:
+        print(f"Error in save video: {e}")
+
+def repost(d):
+    try:
+        print("Reposting video")
+        d.xpath(Xpath["share_button_1"]).click()
+        random_sleep(2, 4)
+        if d.xpath('//*[@content-desc="Remove repost"]/android.widget.FrameLayout[1]').exists:
+            d.press("back")
+        else:
+            d.xpath(Xpath["repost_button"]).click()
+    except Exception as e:
+        print(f"Error in repost: {e}")
 
 def scroll(d):
     try:
@@ -326,6 +353,9 @@ def update_avatar(data):
             link_x = item["Link"]
             break
     d = u2.connect(device_id)
+    d.press("home")
+    d.app_stop("com.zhiliaoapp.musically")
+    d.app_clear("com.genfarmer.uiautomator")
     try:
         subprocess.run([
             "adb", "-s", device_id,
@@ -367,11 +397,12 @@ def update_bio(data):
     device_id = str(data["Phone ID"])
     bio = str(data["Bio"])
     d = u2.connect(device_id)
-
+    d.press("home")
+    d.app_stop("com.zhiliaoapp.musically")
+    d.app_clear("com.genfarmer.uiautomator")
     try:
         print("Update bio")
-    
-        d.app_start("com.ss.android.ugc.trill")
+        d.app_start("com.zhiliaoapp.musically")
         random_sleep(3, 6)
         d.xpath(Xpath["profile_button"]).click()
         random_sleep(2, 4)
@@ -379,7 +410,7 @@ def update_bio(data):
         random_sleep(2, 4)
         d.xpath(Xpath["update_bio"]).click()
         random_sleep(2, 4)
-        if d.xpath('//*[@text="Add a bio"]').exists :
+        if d.xpath('//*[@text="Add a bio"]').exists or d.xpath('//*[@text="Write a short description about who you are or what your account is about"]').exists:
             d.xpath('//*[@text="Add a bio"]').click()
             d.send_keys(bio)
         else: 
@@ -393,7 +424,7 @@ def update_bio(data):
         d.xpath(Xpath["save_button"]).click()
         time.sleep(4)
         d.press('home')
-        d.app_stop("com.ss.android.ugc.trill")
+        d.app_stop("com.zhiliaoapp.musically")
 
         print("Bio updated successfully")
     except Exception as e:
@@ -403,9 +434,12 @@ def update_name(data):
     device_id = str(data["Phone ID"])
     name = str(data["Name"])
     d = u2.connect(device_id)
+    d.press("home")
+    d.app_stop("com.zhiliaoapp.musically")
+    d.app_clear("com.genfarmer.uiautomator")
     try:
         print("Update name")
-        d.app_start("com.ss.android.ugc.trill")
+        d.app_start("com.zhiliaoapp.musically")
         random_sleep(3, 6)
         d.xpath(Xpath["profile_button"]).click()
         random_sleep(2, 4)
@@ -437,7 +471,7 @@ def update_name(data):
 
 def flow1(d, keyWord, comment_language, api_key):
     """Flow 1: Search by keyword and interact"""
-    actions = ["comment", "like", "view"]
+    actions = ["comment", "like", "view", "view", "view", "like", "like", "like", "repost", "save", "save"]  # Tăng tỷ lệ view và like
     try:
         random_sleep(3, 6)
         
@@ -454,29 +488,47 @@ def flow1(d, keyWord, comment_language, api_key):
         
         # Search với từng từ khóa trong list
         for current_keyword in keyword_list:
-            d.app_start("com.ss.android.ugc.trill")
+            d.press("home")
+            d.app_stop("com.zhiliaoapp.musically")
+            d.app_clear("com.genfarmer.uiautomator")
+            installed = set(d.app_list())  # all installed packages
+            for pkg in pkgs:
+                if pkg in installed:
+                    d.app_start(pkg)
+                    break
             random_sleep(10, 12)
             print(f"🔎 Search với từ khóa: {current_keyword}")
             searchByKeyWord(d, current_keyword)
             random_sleep(10, 12)
             
             # Tương tác với 6-10 video
-            for _ in range(random.randint(6, 10)):
-                random_sleep(10, 12)
+            for i in range(random.randint(6, 10)):
+                random_sleep(10, 20)
                 
-                chosen_action = random.choice(actions)
+                if i > 3:
+                    chosen_action = random.choice(actions)
+                else: 
+                    action = ["view", "like", "repost"]
+                    chosen_action = random.choice(action)
+                    action.remove(chosen_action)
                 try:
-                    if(chosen_action == "like"):
+                    if d.xpath(Xpath["x_button"]).exists or d.xpath(Xpath["close_button"]).exists:
+                        d.xpath(Xpath["x_button"] + " | " + Xpath["close_button"]).click_exists()
+                        scroll(d)
+                    else:
+                        scroll(d)
+                    if chosen_action == "like":
                         like(d)
-                        print("chon like")
-                    if(chosen_action == "view"):
+                    if chosen_action == "view":
                         view(d)
-                        print("chon view")
-                    if(chosen_action == "comment"):
-                        comment(d, comment_language, api_key)
-                        time.sleep(2)
+                    if chosen_action == "comment":
+                        comment(d, comment_language,api_key)
                         d.press("back")
-                        print("chon comment")
+                    if chosen_action == "repost":
+                        repost(d)
+                    if chosen_action == "save":
+                        save_video(d)
+                    scroll(d)
                 except Exception as e:                    
                     print(f"⚠️ Lỗi khi thực hiện action: {e}")
                 random_sleep(10, 12)
@@ -486,50 +538,76 @@ def flow1(d, keyWord, comment_language, api_key):
             d.app_stop("com.ss.android.ugc.trill")
         time.sleep(4)
         d.press('home')
-        d.app_stop("com.ss.android.ugc.trill")
+        installed = set(d.app_list())  # all installed packages
+        for pkg in pkgs:
+            if pkg in installed:
+                d.app_stop(pkg)
+                break
     except Exception as e:
         print(f"❌ Lỗi trong firstflow: {e}")
 
 def flow2(d, comment_language, api_key):
     """Flow 2: Browse For You feed and interact"""
-    actions = ["comment", "like", "view"]
+    actions = ["comment", "like", "view", "view", "view", "view", "like", "like", "like"]  # Tăng tỷ lệ view và like
     
     try:
-        d.app_start("com.ss.android.ugc.trill")
+        d.press("home")
+        d.app_stop("com.zhiliaoapp.musically")
+        d.app_clear("com.genfarmer.uiautomator")
+        installed = set(d.app_list())  # all installed packages
+        for pkg in pkgs:
+            if pkg in installed:
+                d.app_start(pkg)
+                break
         print("📱 Mở app TikTok và lướt For You Feed...")
         random_sleep(3, 6)
         
         # Vòng lặp liên tục - không cần tìm kiếm
-        video_count = 0
-        while True:  
-            random_sleep(10, 15)
-            chosen_action = random.choice(actions)
+        for i in range(random.randint(6, 10)):
+            random_sleep(10, 20)
+
+            if i > 3:
+                chosen_action = random.choice(actions)
+            else: 
+                action = ["view", "like", "repost"]
+                chosen_action = random.choice(action)
+                action.remove(chosen_action)
+
             print(f"chosen: {chosen_action}")
-            if(chosen_action == "like"):
-                like(d)
-            if(chosen_action == "view"):
-                view(d)
-            if(chosen_action == "comment"):
-                comment(d, comment_language,api_key)
-                time.sleep(2)
-                d.press("back")
-            scroll(d)
-            video_count += 1
-            random_sleep(10, 12)
             
-            if video_count % 10 == 0:
-                time.sleep(4)
-                break
-        time.sleep(4)
+            if d.xpath(Xpath["x_button"]).exists or d.xpath(Xpath["close_button"]).exists or not d.xpath(Xpath["comment_button"]).exists or not d.xpath(Xpath["like_button"]).exists:
+                d.xpath(Xpath["x_button"] + " | " + Xpath["close_button"]).click_exists()
+                scroll(d)
+            else:
+                d.press("back")
+                scroll(d)
+            if chosen_action == "like":
+                like(d)
+            if chosen_action == "view":
+                view(d)
+            if chosen_action == "comment":
+                comment(d, comment_language,api_key)
+                d.press("back")
+            if chosen_action == "repost":
+                repost(d)
+            if chosen_action == "save":
+                save_video(d)
+            scroll(d)
+
         d.press('home')
-        d.app_stop("com.ss.android.ugc.trill")        
+        installed = set(d.app_list())  # all installed packages
+        for pkg in pkgs:
+            if pkg in installed:
+                d.app_stop(pkg)
+                break
+
     except Exception as e:
         print(f"❌ Lỗi trong secondflow: {e}")
 
 def main_flow(data):
     device_id = str(data["Phone ID"])
     keyWord = str(data["Key Word"])
-    comment_language = str(data["comment language"])
+    comment_language = str(data["comment_language"])
     api_key = str(data["API_KEY"])
     time.sleep(10)
 
