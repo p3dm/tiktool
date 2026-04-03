@@ -80,6 +80,9 @@ def running_buff_view(data):
     print(data)
     device_id = str(data["Phone ID"])
     device = u2.connect(device_id)
+    device.press("home")
+    device.app_stop("com.zhiliaoapp.musically")
+    device.app_clear("com.genfarmer.uiautomator")
     view_target = data["view each phone"]
     comments = data["Comment/ @/ icon (enter)"]
     link = data["link"]

@@ -24,6 +24,7 @@ _active_processes: list = []  # list of multiprocessing.Process
 
 def _register_and_run(processes: list):
     """Start processes, register them globally, wait for completion, then deregister."""
+
     with _process_lock:
         _active_processes.extend(processes)
 

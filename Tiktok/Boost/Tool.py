@@ -30,7 +30,7 @@ def do_comment(d,listComment):
     random_comment = random.choice(comments)
     d.send_keys(random_comment)
     print(random_comment)
-    d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]').click()
+    d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]|//*[@content-desc="@2131888282"]|//*[@content-desc="@2131888272"]|//*[@resource-id="com.zhiliaoapp.musically:id/cgt"]').click()
     time.sleep(2)
     w, h = d.window_size()
     x = int(w * 0.5)
@@ -43,9 +43,6 @@ def do_repost(d):
 def do_save(d):
     d.xpath(reupButton_xpath).click_exists(2)
 def buff_view(view_buff,sleep_time,d,listComment):
-    d.press("home")
-    d.app_stop("com.zhiliaoapp.musically")
-    d.app_clear("com.genfarmer.uiautomator")
     special_actions = [
         "comment",
         "share",
@@ -96,14 +93,14 @@ def upload_video(d,music,caption):
 
     time.sleep(2)
 
-    d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ch5"]|//*[@resource-id="com.ss.android.ugc.trill:id/f49"]|//*[@resource-id="com.zhiliaoapp.musically:id/cib"]|//*[@resource-id="com.zhiliaoapp.musically:id/chq"]').click()
+    d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/ch5"]|//*[@resource-id="com.ss.android.ugc.trill:id/f49"]|//*[@resource-id="com.zhiliaoapp.musically:id/cib"]|//*[@resource-id="com.zhiliaoapp.musically:id/chq"]|//*[@resource-id="com.zhiliaoapp.musically:id/l_n"]|//*[@resource-id="com.zhiliaoapp.musically:id/l_p"]').click()
     print("[LOG] Click Upload")
 
-    d.xpath('//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fsq"]|//*[@resource-id="com.ss.android.ugc.trill:id/n56"]').click()
+    d.xpath('//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fsq"]|//*[@resource-id="com.ss.android.ugc.trill:id/n56"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fvf"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fu_"]').click()
     print("[LOG] Click first image in GridView")
     time.sleep(3)
 
-    d.xpath('//*[@text="Next" and @resource-id="com.zhiliaoapp.musically:id/o__"]|//*[@resource-id="com.ss.android.ugc.trill:id/o67"]').click()
+    d.xpath('//*[@text="Next"]|//*[@text="Next (1)"]|//*[@resource-id="com.ss.android.ugc.trill:id/o67"]|//*[@text="Next"]').click()
     print("[LOG] Click Next (step 1)")
     time.sleep(2)
     if(music != None):
@@ -141,9 +138,8 @@ def upload_video(d,music,caption):
     time.sleep(3)
     d.xpath('//*[@text="Add description..."]|//*[@text="Writing a long description can help get 3x more views on average."]').click(10)
     print("[LOG] Description hint detected")
-
     time.sleep(2)
-    d.send_keys(caption+" ")
+    d.send_keys(caption +" ")
     print("[LOG] Type caption text")
     d.xpath('//*[@text="Post"]|//*[@resource-id="com.zhiliaoapp.musically:id/rd1"]').click()
     time.sleep(15)
