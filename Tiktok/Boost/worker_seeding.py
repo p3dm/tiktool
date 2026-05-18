@@ -12,7 +12,10 @@ from Tool import *
 SHEET_ID = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 SHEET_NAME = "seeding_2"
 SERVICE_ACCOUNT_FILE = "aber-129b1-d3ca26ba130a.json"
-ADB_PATH = r"../adb/windows/adb.exe"
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ADB_PATH = os.path.join(BASE_DIR, "adb", "windows", "adb.exe")
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # ================== INIT SERVICE ==================
@@ -81,12 +84,10 @@ def running_buff_view(data):
     device_id = str(data["Phone ID"])
     device = u2.connect(device_id)
     device.press("home")
-    device.app_stop("com.zhiliaoapp.musically")
     device.app_clear("com.genfarmer.uiautomator")
     view_target = data["view each phone"]
     comments = data["Comment/ @/ icon (enter)"]
     link = data["link"]
-    print("Đang vào link")
     installed = set(device.app_list())  # all installed packages
     if pkgs[1] in installed:
         print(pkgs[1] + " is installed")
@@ -113,13 +114,18 @@ def running_buff_view(data):
         goalOfInteractio = data["goalOfInteraction"]
         interactionOrientation = data["interaction orientation"]
         api_key = data["api_key"]
-        post_data = device.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']").get_text()
-        commentInPost = getCommentByAI(api_key, post_data, language, topic, customerPortrait, goalOfInteractio,
+        if not api_key:
+            print(f"[DEVICE {device_id}] No API key provided, skipping comment generation.")
+            commentInPost = ""
+        else:
+            commentInPost = getCommentByAI(api_key, post_data, language, topic, customerPortrait, goalOfInteractio,
                                    interactionOrientation)
-
-    print(f"[DEVICE {device_id}] START")
+        post_data = device.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']|//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
+        
+        print(f"[DEVICE {device_id}] START")
     time.sleep(10)
     buff_view(int(view_target.strip()), random.randint(25, 45), device, commentInPost)
+    device.press("home")
 # ================== RESULT ==================
 
 def update_running_result(spreadsheet_id, sheet_name, phone_id, status):

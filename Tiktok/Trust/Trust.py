@@ -12,18 +12,20 @@ import json
 #//*[@content-desc="Dismiss update dialog"]
 Xpath = {
     
-    "search": "//*[@text='Search']",
+    "search": "//*[@text='Search']|//*[@text='Tìm kiếm']",
     "comment_button": '//*[contains(@content-desc, "Read or add comments")]',
     "like_button": '//*[@content-desc="Like"]',
     "send_comment": '//*[@content-desc="Post comment"]',
     "send_comment_1": '//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]',
     "search_button": "//*[@resource-id='com.ss.android.ugc.trill:id/nil']",
     "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]", 
-    "search_button_3": '//*[@resource-id="com.zhiliaoapp.musically:id/j2p" and @content-desc="Search"]',   
+    "search_button_3": '//*[@resource-id="com.zhiliaoapp.musically:id/j2p" and @content-desc="Search"]',
+    "search_button_4": '//*[@resource-id="com.ss.android.ugc.trill:id/jb1" and @content-desc="Tìm kiếm"]|//*[@resource-id="com.ss.android.ugc.trill:id/jbh" and @content-desc="Tìm kiếm"]',
     "post_1_3": "//*[@resource-id='com.ss.android.ugc.trill:id/s94']",
     "post_1_1":"//*[@resource-id='com.ss.android.ugc.trill:id/sj7']",
     "post_1_2":"//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
     "post_1_4":'//*[@resource-id="com.zhiliaoapp.musically:id/soy"]',
+    "post_1_5":'//*[@resource-id="com.ss.android.ugc.trill:id/t4i"]|//*[@resource-id="com.ss.android.ugc.trill:id/t2v"]',
     "share_button": '//*[contains(@content-desc, "Share video")]',
     "reup_button": '//*[contains(@content-desc,"Add or remove this video from Favorites")]',
     "profile_button": '//*[@content-desc="Profile"]',
@@ -110,7 +112,7 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             "Bio": cell(8),
             "Name": cell(9),
             "Key_Word": cell(11),
-            "TotalTime": cell(12), # Cột chứa API keys (cách nhau bởi | hoặc \n)
+            "Total Time": cell(12), # Cột chứa API keys (cách nhau bởi | hoặc \n)
             "API_KEY" : cell(13)
         })
     return result
@@ -266,13 +268,13 @@ def generate_keyword(comment_language, keyWord, api_key):
 
 def searchByKeyWord(d, keyWord):
     try:
-        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"] + " | " + Xpath["search_button_3"]).click()
+        d.xpath(Xpath["search_button"] + " | " + Xpath["search_button_2"] + " | " + Xpath["search_button_3"] + " | " + Xpath["search_button_4"]).click()
         random_sleep(6,15)
         d.send_keys(keyWord)
         random_sleep(6,15)
         d.xpath(Xpath["search"]).click()
-        random_sleep(10,15)
-        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"] + " | " + Xpath["post_1_4"]).click()
+        random_sleep(10,20)
+        d.xpath(Xpath["post_1_2"] + " | " + Xpath["post_1_3"] + " | " + Xpath["post_1_1"] + " | " + Xpath["post_1_4"] + " | " + Xpath["post_1_5"]).click()
         random_sleep(6,15)
         if d.xpath(Xpath["close_button"]).exists:
             d.xpath(Xpath["close_button"]).click()
@@ -292,18 +294,22 @@ def comment(d, comment_language,api_key):
 
     try:
         print("💬 Commenting on post")
-        post_caption = d.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']").get_text()
+        post_caption = d.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']|//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
         d.xpath(Xpath["comment_button"]).click()
         random_sleep(3,6)
         print(f"caption:{post_caption}")
         # Generate comment mới từ API (chỉ truyền 2 tham số)
         commentText = generate_comment(comment_language, post_caption,api_key)
-        d.xpath('//*[@text="Add comment..."]').click()
+        d.xpath('//*[@text="Add comment..."]|//*[@text="Thêm bình luận..."]').click()
         print(f"Generated comment: {commentText}")
         d.send_keys(commentText)
         random_sleep(3,6)
-        d.xpath('//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]' + " | " + Xpath["send_comment"] + "|" + Xpath["send_comment_1"]).click()
-        random_sleep(10, 12)
+        d.xpath('//*[@content-desc="@2131953937"]|//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]|//*[@content-desc="@2131888282"]|//*[@content-desc="@2131888272"]|//*[@resource-id="com.zhiliaoapp.musically:id/cgt"]'+ " | " + Xpath["send_comment"] + "|" + Xpath["send_comment_1"]).click()
+        random_sleep(5,8)
+        w, h = d.window_size()
+        x = int(w * 0.5)
+        y = int(h * 0.2)
+        d.click(x, y)
         print("✅ Comment posted successfully")
         
     except Exception as e:
@@ -523,7 +529,10 @@ def flow1(d, keyWord, comment_language, api_key):
                         view(d)
                     if chosen_action == "comment":
                         comment(d, comment_language,api_key)
-                        d.press("back")
+                        w, h = d.window_size()
+                        x = int(w * 0.5)
+                        y = int(h * 0.2)
+                        d.click(x, y)
                     if chosen_action == "repost":
                         repost(d)
                     if chosen_action == "save":
@@ -578,16 +587,16 @@ def flow2(d, comment_language, api_key):
             if d.xpath(Xpath["x_button"]).exists or d.xpath(Xpath["close_button"]).exists or not d.xpath(Xpath["comment_button"]).exists or not d.xpath(Xpath["like_button"]).exists:
                 d.xpath(Xpath["x_button"] + " | " + Xpath["close_button"]).click_exists()
                 scroll(d)
-            else:
-                d.press("back")
-                scroll(d)
             if chosen_action == "like":
                 like(d)
             if chosen_action == "view":
                 view(d)
             if chosen_action == "comment":
                 comment(d, comment_language,api_key)
-                d.press("back")
+                w, h = d.window_size()
+                x = int(w * 0.5)
+                y = int(h * 0.2)
+                d.click(x, y)
             if chosen_action == "repost":
                 repost(d)
             if chosen_action == "save":
@@ -609,6 +618,7 @@ def main_flow(data):
     keyWord = str(data["Key Word"])
     comment_language = str(data["comment_language"])
     api_key = str(data["API_KEY"])
+    total_time = str(data["Total Time"])
     time.sleep(10)
 
     device = u2.connect(device_id)
@@ -616,14 +626,27 @@ def main_flow(data):
     print(f"Đang kết nối đến máy : {device_id}")
     
     try:
-        while True:
-            # Chạy flow1
-            print("🔄 Bắt đầu Flow 1...")
-            flow1(device, keyWord, comment_language, api_key)
+        if not total_time:
+            while True:
+                # Chạy flow1
+                print("🔄 Bắt đầu Flow 1...")
+                flow1(device, keyWord, comment_language, api_key)
+                
+                # Chạy flow2
+                print("🔄 Bắt đầu Flow 2...")
+                flow2(device, comment_language, api_key)
+        else:
+            end_time = time.time() + int(total_time) * 60
+            while time.time() < end_time:
+                # Chạy flow1
+                print("🔄 Bắt đầu Flow 1...")
+                flow1(device, keyWord, comment_language, api_key)
+                
+                # Chạy flow2
+                print("🔄 Bắt đầu Flow 2...")
+                flow2(device, comment_language, api_key)
             
-            # Chạy flow2
-            print("🔄 Bắt đầu Flow 2...")
-            flow2(device, comment_language, api_key)
+            device.press('home')
         
         # update_running_result(sheet_id, sheet_name, device_id, "✅ Hoàn thành")
         

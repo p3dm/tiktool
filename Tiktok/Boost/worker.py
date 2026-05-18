@@ -12,7 +12,7 @@ from Tool import *
 
 sheet_id = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 sheet_name = "seeding"
-ADB_PATH = r"../adb/windows/adb.exe"
+ADB_PATH = r"./adb/windows/adb.exe"
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 creds = Credentials.from_service_account_file(
@@ -65,7 +65,7 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             "Name": cell(9),
             "comment_language": cell(10),
             "Key Word": cell(11),
-            "TotalTime": cell(12),
+            "Total Time": cell(12),
             "API_KEY" : cell(13)
         })
 
@@ -103,7 +103,6 @@ def update_running_result(spreadsheet_id, sheet_name, phone_id, status):
     return False
 
 def running_post_video(data):
-
     device_id = str(data["Phone ID"])
     link = data["Posting link (drive)"]
     caption = data["caption/hashtag"]
@@ -113,7 +112,7 @@ def running_post_video(data):
     results = data["Running results"]
     device = u2.connect(device_id)
     device.press("home")
-    device.app_stop("com.zhiliaoapp.musically")
+    device.app_stop("com.zhiliaoapp.musically|com.ss.android.ugc.trill")
     device.app_clear("com.genfarmer.uiautomator")
     time.sleep(2)
     subprocess.run([
@@ -122,17 +121,16 @@ def running_post_video(data):
         "-a", "android.intent.action.VIEW",
         "-d", link + "com.android.chrome"
     ])
-    time.sleep(60)
-    device.xpath('//*[@content-desc="Download"]|//*[@content-desc="Tải xuống"]|//*[@text="Showing viewer."]/android.view.View[2]/android.view.View[1]/android.view.View[2]/android.view.View[1]/android.widget.Button[1]').click_exists(timeout=10)
-    print(f"{device_id}: Đang tải video về máy...")
+    time.sleep(90)
+    device.xpath('//*[@content-desc="Download"]|//*[@text="Tải xuống"]|//*[@content-desc="Tải xuống"]|//*[@text="Showing viewer."]/android.view.View[2]/android.view.View[1]/android.view.View[2]/android.view.View[1]/android.widget.Button[1]').click_exists(timeout=15)
     time.sleep(10)
-    device.xpath('//*[@text="Download again"]|//*[@text="Download"]|//*[@text="Download anyway"]').click_exists(timeout=7)
+    device.xpath('//*[@text="Download again"]|//*[@text="Download"]|//*[@text="Download anyway"]|//*[@text="Tải xuống"]|//*[@text="Tải xuống lần nữa"]').click_exists(timeout=7)
     time.sleep(30)
     update_running_result(
         sheet_id,
         sheet_name,
         device_id,
-        "Đang Scam")
+        "Tải xuống thành công")
 
     try:
         upload_video(device,music,caption)

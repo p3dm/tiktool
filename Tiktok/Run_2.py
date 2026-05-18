@@ -3,6 +3,8 @@ from multiprocessing import Process
 import threading
 import sys
 import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Boost'))
 from worker import *
 from worker_seeding import *
 from Tool import *
@@ -10,7 +12,7 @@ from worker import running_post_video
 import webbrowser
 
 # Add Trust folder to path to import Trust functions
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Trust'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Trust'))
 from Trust import update_avatar, update_bio, update_name, main_flow
 
 app = Flask(__name__)
@@ -40,8 +42,6 @@ def _register_and_run(processes: list):
                 _active_processes.remove(p)
             except ValueError:
                 pass
-
-
 
 def run_worker_batch():
     """
@@ -305,6 +305,7 @@ def stop_all():
                 pass
 
     return jsonify({"status": "success", "message": f"Stopped {len(targets)} process(es).", "stopped": len(targets)})
+
 
 
 @app.route('/', methods=['GET'])
