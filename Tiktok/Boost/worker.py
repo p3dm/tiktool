@@ -56,7 +56,7 @@ def get_bold_phone_rows(spreadsheet_id, sheet_name):
             "Phone ID": phone_id,
             "Posting link (drive)": cell(1),
             "caption/hashtag": cell(2),
-            "Tool session": cell(3),
+            "date": cell(3),
             "Status": cell(4),
             "Music keyword": cell(5),
             "Running results": cell(6),

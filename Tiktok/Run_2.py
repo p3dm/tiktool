@@ -3,6 +3,11 @@ from multiprocessing import Process
 import threading
 import sys
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime
+
+scheduler = BackgroundScheduler()
+
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Boost'))
 from worker import *
@@ -22,6 +27,26 @@ SPREADSHEET_ID = "14A4XmH66m5bckyGmudP8EJB_xKtsurA7BA4R54aTVz8"
 # Global process registry
 _process_lock = threading.Lock()
 _active_processes: list = []  # list of multiprocessing.Process
+
+def schedule_process(target_func, args=()):
+    """Create a Process, register it and start it immediately (non-blocking).
+
+    Returns the Process object.
+    """
+    p = Process(target=target_func, args=args)
+    with _process_lock:
+        _active_processes.append(p)
+    p.start()
+    return p
+
+
+def _run_process_later(target_func, args=()):
+    """Helper used by the scheduler to start a process at a later time.
+
+    This function is safe to pass to `scheduler.add_job` as a callable with
+    arguments `(target_func, args)`.
+    """
+    schedule_process(target_func, args=args)
 
 
 def _register_and_run(processes: list):
@@ -60,9 +85,14 @@ def run_worker_batch():
         return
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
-
-    processes = [Process(target=running_post_video, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    for data in rows:
+        if data["date"] == None:
+            processes = [Process(target=running_post_video, args=(data,))]
+            _register_and_run(processes)
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(running_post_video, (data,)))
     print("--- Hoàn tất tất cả các tiến trình ---")
 
 def get_device_data(phone_id, sheet_name="seeding"):
@@ -98,8 +128,18 @@ def update_avatar_batch():
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
 
-    processes = [Process(target=update_avatar, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    # For each row, either schedule or run immediately
+    processes = []
+    for data in rows:
+        if data.get("date") in (None, "", 0):
+            processes.append(Process(target=update_avatar, args=(data,)))
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(update_avatar, (data,)))
+
+    if processes:
+        _register_and_run(processes)
     print("--- Hoàn tất cập nhật Avatar cho tất cả thiết bị ---")
 
 def update_bio_batch():
@@ -119,8 +159,17 @@ def update_bio_batch():
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
 
-    processes = [Process(target=update_bio, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    processes = []
+    for data in rows:
+        if data.get("date") in (None, "", 0):
+            processes.append(Process(target=update_bio, args=(data,)))
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(update_bio, (data,)))
+
+    if processes:
+        _register_and_run(processes)
     print("--- Hoàn tất cập nhật Bio cho tất cả thiết bị ---")
 
 def update_name_batch():
@@ -140,8 +189,17 @@ def update_name_batch():
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
 
-    processes = [Process(target=update_name, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    processes = []
+    for data in rows:
+        if data.get("date") in (None, "", 0):
+            processes.append(Process(target=update_name, args=(data,)))
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(update_name, (data,)))
+
+    if processes:
+        _register_and_run(processes)
     print("--- Hoàn tất cập nhật Name cho tất cả thiết bị ---")
 
 def main_flow_batch():
@@ -161,8 +219,17 @@ def main_flow_batch():
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
 
-    processes = [Process(target=main_flow, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    processes = []
+    for data in rows:
+        if data.get("date") in (None, "", 0):
+            processes.append(Process(target=main_flow, args=(data,)))
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(main_flow, (data,)))
+
+    if processes:
+        _register_and_run(processes)
     print("--- Hoàn tát Main Flow cho tất cả thiết bị ---")
 
 # API Endpoints
@@ -243,8 +310,17 @@ def run_worker_seeing_batch():
 
     print(f"--- Tìm thấy {len(rows)} dòng dữ liệu. Bắt đầu chạy Multiprocessing ---")
 
-    processes = [Process(target=running_buff_view, args=(data,)) for data in rows]
-    _register_and_run(processes)
+    processes = []
+    for data in rows:
+        if data.get("date") in (None, "", 0):
+            processes.append(Process(target=running_buff_view, args=(data,)))
+        else:
+            time_str = data["date"]
+            run_date = datetime.strptime(time_str, "%d/%m/%Y %H:%M:%S")
+            scheduler.add_job(_run_process_later, 'date', run_date=run_date, args=(running_buff_view, (data,)))
+
+    if processes:
+        _register_and_run(processes)
     print("--- Hoàn tất tất cả các tiến trình ---")
 
 @app.route('/start-seeding', methods=['GET', 'POST'])
@@ -317,5 +393,11 @@ def index():
 if __name__ == "__main__":
     # debug=True có thể gây lỗi với multiprocessing, nên để False hoặc mặc định
     target_website = "http://127.0.0.1:5000"
+    # start scheduler so scheduled jobs will run
+    try:
+        scheduler.start()
+    except Exception:
+        pass
+
     webbrowser.open(target_website)
     app.run(host="0.0.0.0", port=5000)
