@@ -95,14 +95,16 @@ def running_buff_view(data):
                 ADB_PATH, "-s", device_id,
                 "shell", "am", "start",
                 "-a", "android.intent.action.VIEW",
-                "-d", link + "com.zhiliaoapp.musically"
+                "-d", link,
+                "-p", pkgs[1]
         ])
     else:
         subprocess.run([
             ADB_PATH, "-s", device_id,
             "shell", "am", "start",
             "-a", "android.intent.action.VIEW",
-            "-d", link + "com.ss.android.ugc.trill"
+            "-d", link,
+            "-p", pkgs[0]
         ])
     time.sleep(10)
     if(comments!=""):
@@ -121,7 +123,6 @@ def running_buff_view(data):
             commentInPost = getCommentByAI(api_key, post_data, language, topic, customerPortrait, goalOfInteractio,
                                    interactionOrientation)
         post_data = device.xpath("//*[@resource-id='com.zhiliaoapp.musically:id/desc']|//*[@resource-id='com.ss.android.ugc.trill:id/desc']").get_text()
-        
         print(f"[DEVICE {device_id}] START")
     time.sleep(10)
     buff_view(int(view_target.strip()), random.randint(25, 45), device, commentInPost)

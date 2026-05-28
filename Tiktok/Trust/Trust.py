@@ -20,12 +20,12 @@ Xpath = {
     "search_button": "//*[@resource-id='com.ss.android.ugc.trill:id/nil']",
     "search_button_2": "//*[@resource-id='com.ss.android.ugc.trill:id/g8v'][2]", 
     "search_button_3": '//*[@resource-id="com.zhiliaoapp.musically:id/j2p" and @content-desc="Search"]',
-    "search_button_4": '//*[@resource-id="com.ss.android.ugc.trill:id/jb1" and @content-desc="Tìm kiếm"]|//*[@resource-id="com.ss.android.ugc.trill:id/jbh" and @content-desc="Tìm kiếm"]',
+    "search_button_4": '//*[@resource-id="com.ss.android.ugc.trill:id/jb1" and @content-desc="Tìm kiếm"]|//*[@resource-id="com.ss.android.ugc.trill:id/jbh" and @content-desc="Tìm kiếm"]|//*[@resource-id="com.zhiliaoapp.musically:id/jhs"]',
     "post_1_3": "//*[@resource-id='com.ss.android.ugc.trill:id/s94']",
     "post_1_1":"//*[@resource-id='com.ss.android.ugc.trill:id/sj7']",
     "post_1_2":"//*[@resource-id='com.ss.android.ugc.trill:id/n22']",
     "post_1_4":'//*[@resource-id="com.zhiliaoapp.musically:id/soy"]',
-    "post_1_5":'//*[@resource-id="com.ss.android.ugc.trill:id/t4i"]|//*[@resource-id="com.ss.android.ugc.trill:id/t2v"]',
+    "post_1_5":'//*[@resource-id="com.ss.android.ugc.trill:id/t4i"]|//*[@resource-id="com.ss.android.ugc.trill:id/t2v"]|//*[@resource-id="com.zhiliaoapp.musically:id/txw"]',
     "share_button": '//*[contains(@content-desc, "Share video")]',
     "reup_button": '//*[contains(@content-desc,"Add or remove this video from Favorites")]',
     "profile_button": '//*[@content-desc="Profile"]',
@@ -304,7 +304,7 @@ def comment(d, comment_language,api_key):
         print(f"Generated comment: {commentText}")
         d.send_keys(commentText)
         random_sleep(3,6)
-        d.xpath('//*[@content-desc="@2131953937"]|//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]|//*[@content-desc="@2131888282"]|//*[@content-desc="@2131888272"]|//*[@resource-id="com.zhiliaoapp.musically:id/cgt"]'+ " | " + Xpath["send_comment"] + "|" + Xpath["send_comment_1"]).click()
+        d.xpath('//*[@content-desc="@2131953937"]|//*[@content-desc="@2131888501"]|//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]|//*[@content-desc="@2131888282"]|//*[@content-desc="@2131888272"]|//*[@resource-id="com.zhiliaoapp.musically:id/cgt"]'+ " | " + Xpath["send_comment"] + "|" + Xpath["send_comment_1"]).click()
         random_sleep(5,8)
         w, h = d.window_size()
         x = int(w * 0.5)
@@ -477,7 +477,7 @@ def update_name(data):
 
 def flow1(d, keyWord, comment_language, api_key):
     """Flow 1: Search by keyword and interact"""
-    actions = ["comment", "like", "view", "view", "view", "like", "like", "like", "repost", "save", "save"]  # Tăng tỷ lệ view và like
+    actions = ["comment", "like", "view", "view", "view", "like", "like", "like", "save", "save"]  # Tăng tỷ lệ view và like
     try:
         random_sleep(3, 6)
         
@@ -495,11 +495,11 @@ def flow1(d, keyWord, comment_language, api_key):
         # Search với từng từ khóa trong list
         for current_keyword in keyword_list:
             d.press("home")
-            d.app_stop("com.zhiliaoapp.musically")
-            d.app_clear("com.genfarmer.uiautomator")
             installed = set(d.app_list())  # all installed packages
+            
             for pkg in pkgs:
                 if pkg in installed:
+                    d.app_stop(pkg)
                     d.app_start(pkg)
                     break
             random_sleep(10, 12)
@@ -543,8 +543,6 @@ def flow1(d, keyWord, comment_language, api_key):
                 random_sleep(10, 12)
                 scroll(d)
             time.sleep(4)
-            d.press('home')
-            d.app_stop("com.ss.android.ugc.trill")
         time.sleep(4)
         d.press('home')
         installed = set(d.app_list())  # all installed packages
@@ -561,11 +559,10 @@ def flow2(d, comment_language, api_key):
     
     try:
         d.press("home")
-        d.app_stop("com.zhiliaoapp.musically")
-        d.app_clear("com.genfarmer.uiautomator")
         installed = set(d.app_list())  # all installed packages
         for pkg in pkgs:
             if pkg in installed:
+                d.app_stop(pkg)
                 d.app_start(pkg)
                 break
         print("📱 Mở app TikTok và lướt For You Feed...")
@@ -602,7 +599,6 @@ def flow2(d, comment_language, api_key):
             if chosen_action == "save":
                 save_video(d)
             scroll(d)
-
         d.press('home')
         installed = set(d.app_list())  # all installed packages
         for pkg in pkgs:
