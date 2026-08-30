@@ -30,7 +30,6 @@ def do_comment(d,listComment):
     comments = listComment.split("|")
     random_comment = random.choice(comments)
     d.send_keys(random_comment)
-    print(random_comment)
     d.xpath('//*[@content-desc="@2131953937"]|//*[@content-desc="@2131888501"]|//*[@content-desc="@2131888199"]|//*[@content-desc="@2131888218"]|//*[@content-desc="@2131888231"]|//*[@content-desc="Post comment"]|//*[@resource-id="com.zhiliaoapp.musically:id/cg8" or @content-desc="@2131888260"]|//*[@content-desc="@2131888282"]|//*[@content-desc="@2131888272"]|//*[@resource-id="com.zhiliaoapp.musically:id/cgt"]').click()
     time.sleep(2)
     w, h = d.window_size()
@@ -64,7 +63,6 @@ def buff_view(view_buff,sleep_time,d,listComment):
             d.swipe(w * 0.5, h * 0.3, w * 0.5, h * 0.7, 0.2)
             print(f"{action}")
             if action == "like":
-                print("do like")
                 do_like(d)
             elif action == "comment":
                 do_comment(d,listComment)
@@ -77,7 +75,6 @@ def buff_view(view_buff,sleep_time,d,listComment):
                 continue
             time.sleep(sleep_time)
         except Exception as e:
-            print(f"Error during buff_view action '{action}': {e}")
             continue
 
 def upload_video(d,music,caption):
@@ -88,71 +85,64 @@ def upload_video(d,music,caption):
             d.app_stop(pkg)
             d.app_start(pkg)
             break
-    print("[LOG] Start TikTok app")
 
     time.sleep(random.uniform(7, 8))
 
     d.xpath('//*[@content-desc="Create"]|//*[@content-desc="Quay"]|//*[@resource-id="com.ss.android.ugc.trill:id/mva"]|//*[@resource-id="com.zhiliaoapp.musically:id/myb"]').click()
-    print("[LOG] Click Create (+)")
-
     time.sleep(5)
 
     d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/lhv"]|//*[@resource-id="com.ss.android.ugc.trill:id/lh7"]|//*[@resource-id="com.ss.android.ugc.trill:id/hqn"]|//*[@resource-id="com.ss.android.ugc.trill:id/ch5"]|//*[@resource-id="com.ss.android.ugc.trill:id/f49"]|//*[@resource-id="com.zhiliaoapp.musically:id/cib"]|//*[@resource-id="com.zhiliaoapp.musically:id/chq"]|//*[@resource-id="com.zhiliaoapp.musically:id/l_n"]|//*[@resource-id="com.zhiliaoapp.musically:id/l_p"]').click()
-    print("[LOG] Click Upload")
     time.sleep(5)
 
-    d.xpath('//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[1]/*[@resource-id="com.zhiliaoapp.musically:id/fsq"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.ss.android.ugc.trill:id/g13"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.ss.android.ugc.trill:id/fzs"]|//*[@resource-id="com.ss.android.ugc.trill:id/g13"]|//*[@resource-id="com.ss.android.ugc.trill:id/n56"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fvf"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fu_"]').click()
-    print("[LOG] Click first image in GridView")
+    d.xpath('//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[1]/*[@resource-id="com.zhiliaoapp.musically:id/fsq"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.ss.android.ugc.trill:id/g13"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.ss.android.ugc.trill:id/fzs"]|//*[@resource-id="com.ss.android.ugc.trill:id/g13"]|//*[@resource-id="com.ss.android.ugc.trill:id/n56"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fvf"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.zhiliaoapp.musically:id/fu_"]|//android.widget.GridView/android.widget.FrameLayout[1]/android.widget.FrameLayout[2]/*[@resource-id="com.ss.android.ugc.trill:id/dwo"]').click()
     time.sleep(5)
 
-    # d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@text="Next (1)"]|//*[@resource-id="com.ss.android.ugc.trill:id/o67"]').click()
-    # print("[LOG] Click Next (step 1)")
+    d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@text="Next (1)"]|//*[@resource-id="com.ss.android.ugc.trill:id/p9b"]').click()
     time.sleep(5)
     if(music != None):
         time.sleep(5)
-        d.xpath('//*[@text="Add sound"]').click()
-        print("[LOG] Focus search / input field")
+        d.xpath('//*[@text="Add sound"]|//*[@resource-id="com.ss.android.ugc.trill:id/rqh"]').click()
         time.sleep(5)
         d.xpath('//*[@content-desc="Search"]').click()
         time.sleep(5)
         d.send_keys(music, clear=True)
-        print("[LOG] Type search text: That girl")
 
         time.sleep(5)
 
         d.xpath('//*[@text="Search"]').click()
-        print("[LOG] Click Search")
 
         time.sleep(5)
         d.xpath('//androidx.recyclerview.widget.RecyclerView/android.widget.FrameLayout[2]/android.view.ViewGroup[1]/android.view.ViewGroup[1]/android.view.ViewGroup[2]').click()
-        print("[LOG] Select first search result")
         time.sleep(5)
         w, h = d.window_size()
         x = w * random.uniform(0.48, 0.52)
         y = h * random.uniform(0.30, 0.33)
         d.click(x, y)   
-        print("[LOG] Click position 50% width - 65% height")
 
     time.sleep(5)
-    if d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6e"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6h"]').exists:
-        d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6e"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6h"]').click()
-        print("[LOG] Click Next (step 1)")
+    if d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6e"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6h"]|//*[@resource-id="com.ss.android.ugc.trill:id/p9b"]').exists:
+        d.xpath('//*[@text="Next"]|//*[@text="Tiếp"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6e"]|//*[@resource-id="com.ss.android.ugc.trill:id/o6h"]|//*[@resource-id="com.ss.android.ugc.trill:id/p9b"]').click()
 
     time.sleep(5)
     if(caption != None):
-        d.xpath('//*[@text="Add description..."]|//*[@text="Thêm mô tả..."]|//*[@text="Writing a long description can help get 3x more views on average."]').click(10)
-        print("[LOG] Description hint detected")
+        d.xpath('//*[@text="Add description..."]|//*[@text="Thêm mô tả..."]|//*[@text="Writing a long description can help get 3x more views on average."]|//*[@resource-id="com.ss.android.ugc.trill:id/e7f"]').click(10)
         time.sleep(5)
         d.send_keys(caption +"")
-    print("[LOG] Type caption text")
     d.xpath('//*[@text="Post"]|//*[@text="Đăng"]|//*[@resource-id="com.zhiliaoapp.musically:id/rd1"]').click()
-    time.sleep(15)
+    time.sleep(90-120)
+    d.xpath('//*[@resource-id="com.ss.android.ugc.trill:id/j4y"]|//*[@resource-id="com.zhiliaoapp.musically:id/n19"]').click()
+    time.sleep(30)
+    d.swipe(w * 0.5, h * 0.3, w * 0.5, h * 0.7, 0.2)
     d.press("home")
     
 
 def open_link(link, device_id):
     command = ["adb", "-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", link]
-    subprocess.run(command)
+    subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        creationflags=subprocess.CREATE_NO_WINDOW)
 
 def getCommentByAI(api_key, post_data,seeding_language,niche,topic,customer_portrait,goal_of_interaction):
     prompt = f"""
