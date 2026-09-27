@@ -382,6 +382,7 @@ def update_avatar(data):
         d.press('home')
         d.app_stop("com.ss.android.ugc.trill")
     except Exception as e:
+        logging.exception(f"Error: {e}")
         return
     
 def update_bio(data):
@@ -425,6 +426,7 @@ def update_bio(data):
         time.sleep(10)
         d.press('home')
     except Exception as e:
+        logging.exception(f"Error: {e}")
         return
 
 def update_name(data):
